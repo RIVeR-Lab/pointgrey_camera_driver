@@ -262,6 +262,7 @@ private:
     pnh.param<std::string>("camera_info_url", camera_info_url, "");
     // Get the desired frame_id, set to 'camera' if not found
     pnh.param<std::string>("frame_id", frame_id_, "camera");
+    pnh.param<std::string>("namespace", namespace_, "");
 
     // Do not call the connectCb function until after we are done initializing.
     boost::mutex::scoped_lock scopedLock(connect_mutex_);
@@ -280,7 +281,7 @@ private:
     // Publish topics using ImageTransport through camera_info_manager (gives cool things like compression)
     it_.reset(new image_transport::ImageTransport(nh));
     image_transport::SubscriberStatusCallback cb = boost::bind(&PointGreyCameraNodelet::connectCb, this);
-    it_pub_ = it_->advertiseCamera("image_raw", 5, cb, cb);
+    it_pub_ = it_->advertiseCamera(namespace_+"image_raw", 5, cb, cb);
 
     // Set up diagnostics
     updater_.setHardwareID("pointgrey_camera " + cinfo_name.str());
@@ -299,7 +300,7 @@ private:
     double max_acceptable; // The maximum publishing delay (in seconds) before warning.
     pnh.param<double>("max_acceptable_delay", max_acceptable, 0.2);
     ros::SubscriberStatusCallback cb2 = boost::bind(&PointGreyCameraNodelet::connectCb, this);
-    pub_.reset(new diagnostic_updater::DiagnosedPublisher<wfov_camera_msgs::WFOVImage>(nh.advertise<wfov_camera_msgs::WFOVImage>("image", 5, cb2, cb2),
+    pub_.reset(new diagnostic_updater::DiagnosedPublisher<wfov_camera_msgs::WFOVImage>(nh.advertise<wfov_camera_msgs::WFOVImage>(namespace_+"image", 5, cb2, cb2),
                updater_,
                diagnostic_updater::FrequencyStatusParam(&min_freq_, &max_freq_, freq_tolerance, window_size),
                diagnostic_updater::TimeStampStatusParam(min_acceptable, max_acceptable)));
@@ -418,6 +419,7 @@ private:
   PointGreyCamera pg_; ///< Instance of the PointGreyCamera library, used to interface with the hardware.
   sensor_msgs::CameraInfoPtr ci_; ///< Camera Info message.
   std::string frame_id_; ///< Frame id for the camera messages, defaults to 'camera'
+  std::string namespace_; ///< namespace to add to topics, IE left, right
   boost::shared_ptr<boost::thread> pubThread_; ///< The thread that reads and publishes the images.
 
   double gain_;
